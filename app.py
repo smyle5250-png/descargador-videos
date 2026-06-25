@@ -8,6 +8,7 @@ import time
 app = Flask(__name__)
 
 DOWNLOAD_FOLDER = "/tmp/videos"
+COOKIES_FILE = os.path.join(os.path.dirname(__file__), "cookies.txt")
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 def limpiar_archivos_viejos():
@@ -24,6 +25,16 @@ def limpiar_archivos_viejos():
 
 threading.Thread(target=limpiar_archivos_viejos, daemon=True).start()
 
+def get_ydl_opts(extra={}):
+    opts = {
+        "quiet": True,
+        "no_warnings": True,
+    }
+    if os.path.exists(COOKIES_FILE):
+        opts["cookiefile"] = COOKIES_FILE
+    opts.update(extra)
+    return opts
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -35,14 +46,8 @@ def info():
     if not url:
         return jsonify({"error": "URL vacía"}), 400
 
-    ydl_opts = {
-        "quiet": True,
-        "no_warnings": True,
-        "skip_download": True,
-    }
-
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(get_ydl_opts({"skip_download": True})) as ydl:
             info = ydl.extract_info(url, download=False)
             return jsonify({
                 "titulo": info.get("title", "Video"),
@@ -66,7 +71,7 @@ def descargar():
     file_id = str(uuid.uuid4())
 
     if formato == "mp3":
-        ydl_opts = {
+        extra = {
             "format": "bestaudio/best",
             "outtmpl": os.path.join(DOWNLOAD_FOLDER, f"{file_id}.%(ext)s"),
             "postprocessors": [{
@@ -74,22 +79,20 @@ def descargar():
                 "preferredcodec": "mp3",
                 "preferredquality": "192",
             }],
-            "quiet": True,
         }
         ext = "mp3"
         mime = "audio/mpeg"
     else:
-        ydl_opts = {
+        extra = {
             "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
             "outtmpl": os.path.join(DOWNLOAD_FOLDER, f"{file_id}.%(ext)s"),
             "merge_output_format": "mp4",
-            "quiet": True,
         }
         ext = "mp4"
         mime = "video/mp4"
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(get_ydl_opts(extra)) as ydl:
             info = ydl.extract_info(url, download=True)
             titulo = info.get("title", "video")
 
