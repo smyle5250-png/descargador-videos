@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Descargador Universal de Videos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0e0e11;
+      --surface: #18181c;
+      --surface2: #222228;
+      --border: rgba(255,255,255,0.08);
+      --text: #f0f0f0;
+      --muted: #888;
+      --accent: #a78bfa;
+      --success: #34d399;
+      --error: #f87171;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+    }
+    header {
+      text-align: center;
+      margin: 2rem 0 2.5rem;
+    }
+    .logo {
+      font-size: 48px;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    h1 span { color: var(--accent); }
+    .subtitle { color: var(--muted); font-size: 15px; margin-bottom: 8px; }
+    .sites {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      max-width: 560px;
+    }
+    .site-tag {
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 560px;
+      margin-bottom: 1rem;
+    }
+
+    .input-row { display: flex; gap: 8px; margin-bottom: 0; }
+    input[type="text"] {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      padding: 0 14px;
+      height: 44px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+    input[type="text"]::placeholder { color: var(--muted); }
+
+    .btn-buscar {
+      background: var(--accent);
+      color: #0e0e11;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 0 20px;
+      height: 44px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-buscar:hover { opacity: 0.9; }
+    .btn-buscar:active { transform: scale(0.97); }
+    .btn-buscar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #preview {
+      display: none;
+      background: var(--surface2);
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 14px;
+      align-items: center;
+      gap: 12px;
+    }
+    #preview img {
+      width: 90px; height: 60px;
+      object-fit: cover;
+      border-radius: 8px;
+      flex-shrink: 0;
+      background: var(--surface);
+    }
+    #preview .vinfo { flex: 1; min-width: 0; }
+    #preview .vtitle {
+      font-size: 13px; font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+    #preview .vmeta { font-size: 12px; color: var(--muted); }
+
+    #formatSection {
+      display: none;
+      margin-top: 14px;
+    }
+    .format-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .fmt-btn {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 9px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .fmt-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(167,139,250,0.08);
+    }
+    .btn-descargar {
+      width: 100%;
+      background: var(--accent);
+      color: #0e0e11;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 12px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-descargar:hover { opacity: 0.9; }
+    .btn-descargar:active { transform: scale(0.98); }
+    .btn-descargar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .progress-bar {
+      display: none;
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 4px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 4px;
+      width: 40%;
+      animation: slide 1.2s infinite ease-in-out;
+    }
+    @keyframes slide {
+      0% { transform: translateX(-150%); }
+      100% { transform: translateX(350%); }
+    }
+
+    #status {
+      margin-top: 10px;
+      font-size: 13px;
+      text-align: center;
+      min-height: 18px;
+      color: var(--muted);
+    }
+    #status.error { color: var(--error); }
+    #status.success { color: var(--success); }
+
+    .info-footer {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      max-width: 560px;
+      line-height: 1.7;
+      margin-top: 0.5rem;
+    }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⬇️</div>
+  <h1>Descargador <span>universal</span></h1>
+  <p class="subtitle">Pegá cualquier link con video y lo descargamos</p>
+  <div class="sites">
+    <span class="site-tag">YouTube</span>
+    <span class="site-tag">TikTok</span>
+    <span class="site-tag">Instagram</span>
+    <span class="site-tag">Facebook</span>
+    <span class="site-tag">Twitter/X</span>
+    <span class="site-tag">Reddit</span>
+    <span class="site-tag">Vimeo</span>
+    <span class="site-tag">Twitch</span>
+    <span class="site-tag">Pinterest</span>
+    <span class="site-tag">Dailymotion</span>
+    <span class="site-tag">y miles más...</span>
+  </div>
+</header>
+
+<div class="card">
+  <div class="input-row">
+    <input type="text" id="urlInput" placeholder="Pegá el link del video acá..." />
+    <button class="btn-buscar" id="btnBuscar" onclick="obtenerInfo()">Buscar</button>
+  </div>
+
+  <div id="preview">
+    <img id="thumb" src="" alt="thumbnail" onerror="this.style.display='none'" />
+    <div class="vinfo">
+      <div class="vtitle" id="vtitle"></div>
+      <div class="vmeta" id="vmeta"></div>
+    </div>
+  </div>
+
+  <div id="formatSection">
+    <div class="format-row">
+      <div class="fmt-btn active" id="btn-mp4" onclick="setFormato('mp4')">📹 MP4 — video</div>
+      <div class="fmt-btn" id="btn-mp3" onclick="setFormato('mp3')">🎵 MP3 — solo audio</div>
+    </div>
+    <button class="btn-descargar" id="btnDescargar" onclick="descargar()">⬇ Descargar</button>
+  </div>
+
+  <div class="progress-bar" id="progressBar">
+    <div class="progress-fill"></div>
+  </div>
+  <div id="status"></div>
+</div>
+
+<p class="info-footer">
+  Descarga directa a tu dispositivo · No guardamos ningún video<br>
+  Solo funciona con videos públicos · Gratis y sin límites
+</p>
+
+<script>
+  let formato = 'mp4';
+
+  function setFormato(f) {
+    formato = f;
+    document.getElementById('btn-mp4').className = 'fmt-btn' + (f === 'mp4' ? ' active' : '');
+    document.getElementById('btn-mp3').className = 'fmt-btn' + (f === 'mp3' ? ' active' : '');
+  }
+
+  function setStatus(msg, tipo) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = tipo || '';
+  }
+
+  function showProgress(show) {
+    document.getElementById('progressBar').style.display = show ? 'block' : 'none';
+  }
+
+  async function obtenerInfo() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) { setStatus('Pegá el link del video primero.', 'error'); return; }
+
+    const btn = document.getElementById('btnBuscar');
+    btn.disabled = true;
+    btn.textContent = 'Buscando...';
+    setStatus('Obteniendo información del video...', '');
+    showProgress(true);
+    document.getElementById('preview').style.display = 'none';
+    document.getElementById('formatSection').style.display = 'none';
+
+    try {
+      const res = await fetch('/info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        setStatus(data.error, 'error');
+        showProgress(false);
+        btn.disabled = false;
+        btn.textContent = 'Buscar';
+        return;
+      }
+
+      document.getElementById('vtitle').textContent = data.titulo;
+      let meta = data.plataforma;
+      if (data.autor) meta += ' · ' + data.autor;
+      if (data.duracion) meta += ' · ' + formatDuracion(data.duracion);
+      document.getElementById('vmeta').textContent = meta;
+
+      if (data.thumbnail) {
+        const img = document.getElementById('thumb');
+        img.style.display = 'block';
+        img.src = data.thumbnail;
+      }
+
+      document.getElementById('preview').style.display = 'flex';
+      document.getElementById('formatSection').style.display = 'block';
+      setStatus('¡Video encontrado! Elegí el formato y descargá.', 'success');
+      showProgress(false);
+
+    } catch (e) {
+      setStatus('No se pudo conectar con el servidor.', 'error');
+      showProgress(false);
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Buscar';
+  }
+
+  function formatDuracion(seg) {
+    if (!seg) return '';
+    const m = Math.floor(seg / 60);
+    const s = Math.floor(seg % 60);
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  async function descargar() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) return;
+
+    const btn = document.getElementById('btnDescargar');
+    btn.disabled = true;
+    btn.textContent = '⏳ Descargando...';
+    setStatus('Procesando el video, puede tardar unos segundos...', '');
+    showProgress(true);
+
+    try {
+      const res = await fetch('/descargar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, formato })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        setStatus(err.error || 'No se pudo descargar.', 'error');
+        showProgress(false);
+        btn.disabled = false;
+        btn.textContent = '⬇ Descargar';
+        return;
+      }
+
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') || '';
+      let filename = 'video.' + formato;
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      if (match) filename = match[1];
+
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+
+      setStatus('✅ ¡Descarga completada!', 'success');
+      showProgress(false);
+
+    } catch (e) {
+      setStatus('Error de conexión: ' + e.message, 'error');
+      showProgress(false);
+    }
+
+    btn.disabled = false;
+    btn.textContent = '⬇ Descargar';
+  }
+
+  document.getElementById('urlInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') obtenerInfo();
+  });
+</script>
+</body>
+</html>
